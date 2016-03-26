@@ -93,12 +93,16 @@ def	remove_empty_tweets(inputs, targets):
 	"""
 	print('removing empty tweets')
 
+	i = 0
 	count = 0
-	for i in range(len(inputs)):
+	length = len(inputs)
+	while i < length:
 		if inputs[i] == ' ' or inputs[i] == '':
-			count += 1
-			np.delete(inputs, i)
-			np.delete(targets, i)
+			inputs = np.delete(inputs, i)
+			targets = np.delete(targets, i)
+			i -= 1
+			length -= 1
+		i += 1
 
 	print('removed {0} tweets from dataset since tweets were empty'.format(count))
 	return inputs, targets
@@ -183,5 +187,16 @@ def main():
 		original_data_length,
 		total_data_length
 	))
+
+	print('saving parsed dataset')
+	np.save('parsed_data/inputs_train.npy', inputs_train)
+	np.save('parsed_data/targets_train.npy', targets_train)
+	np.save('parsed_data/inputs_valid.npy', inputs_valid)
+	np.save('parsed_data/targets_valid.npy', targets_valid)
+	np.save('parsed_data/inputs_test.npy', inputs_test)
+	np.save('parsed_data/targets_test.npy', targets_test)
+	print('saved parsed dataset')
+
+	print('parsing complete!')
 
 if __name__ == "__main__": main()
