@@ -2,7 +2,7 @@ import sys
 import numpy as np
 from pandas import read_csv
 
-STOP_WORDS = []
+STOP_WORDS = np.array([])
 FILENAME = 'training_data.csv' # the training data csv
 
 def load_stopwords():
@@ -10,7 +10,7 @@ def load_stopwords():
 	print('loading stopwords')
 	with open('stopwords.txt') as f:
 		global STOP_WORDS
-		STOP_WORDS = f.read().splitlines()
+		STOP_WORDS = np.array(f.read().splitlines())
 	print('loaded stopwords')
 
 def load_csv():
@@ -61,17 +61,54 @@ def remove_neutral_tweets(inputs, targets):
 	print('Removed {0} neutral tweets'.format(count))
 	return inputs, targets
 
-def main():
-	cli_args = sys.argv
+def remove_stopwords(inputs, targets, stopwords):
+	"""
+	Parses the inputs and removes stopwords. If the input (tweet) is empty
+	it will also remove the corresponding target (sentiment)
 
-	if 'remove_stopwords' in cli_args:
-		load_stopwords()
+	Returns:
+		inputs:  A numpy array of the tweets
+		targets: A numpy array of the sentiment, 1 for positive, 0 for negative
+	"""
+	print('removing stopwords from tweets')
+
+	count = 0
+	for i in range(len(inputs)):
+		tweet_list = inputs[i].split()
+		inputs[i] = ' '.join([j for j in tweet_list if j not in stopwords])
+
+		if inputs[i] == ' ' or inputs[i] == '':
+			count += 1
+			np.delete(inputs, i)
+			np.delete(targets, i)
+
+	print('removed stopwords from tweets')
+	print('Removed {0} tweets from dataset since tweets were empty'.format(count))
+	return inputs, targets
+
+def main():
+	"""
+	CLI Arguments allowed:
+		remove_stopwords     Removes stopwords from tweet content
+		
+		keep_neutral_tweets  Keeps tweets with neutral sentiment
+		                     By default removes neutral tweets
+
+		keep_punctuation     Keeps punctuation in tweet content
+		                     By default removes punctuation from tweet content
+	"""
+	cli_args = sys.argv
 
 	corpus = load_csv()
 	inputs, targets = parse_corpus(corpus)
 
 	if not 'keep_neutral_tweets' in cli_args:
 		inputs, targets = remove_neutral_tweets(inputs, targets)
+
+	if 'remove_stopwords' in cli_args:
+		load_stopwords()
+		inputs, targets = remove_stopwords(inputs, targets, STOP_WORDS)
+
 
 	exit()
 
