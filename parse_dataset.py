@@ -1,4 +1,5 @@
 import sys
+import string
 import numpy as np
 from pandas import read_csv
 
@@ -61,13 +62,12 @@ def remove_neutral_tweets(inputs, targets):
 	print('removed {0} neutral tweets'.format(count))
 	return inputs, targets
 
-def remove_stopwords(inputs, targets, stopwords):
+def remove_stopwords(inputs, stopwords):
 	"""
 	Parses the inputs and removes stopwords.
 
 	Returns:
 		inputs:  A numpy array of the tweets
-		targets: A numpy array of the sentiment, 1 for positive, 0 for negative
 	"""
 	print('removing stopwords from tweets')
 
@@ -77,7 +77,7 @@ def remove_stopwords(inputs, targets, stopwords):
 		inputs[i] = ' '.join([j for j in tweet_list if j not in stopwords])
 
 	print('removed stopwords from tweets')
-	return inputs, targets
+	return inputs
 
 def	remove_empty_tweets(inputs, targets):
 	"""
@@ -100,12 +100,26 @@ def	remove_empty_tweets(inputs, targets):
 	print('removed {0} tweets from dataset since tweets were empty'.format(count))
 	return inputs, targets
 
+def remove_punctuation(inputs):
+	"""
+	Parses the inputs and removes punctuation from tweet content.
 
+	Returns:
+		inputs:  A numpy array of the tweets
+	"""
+	print('removing punctuation from tweet content')
+	table = string.maketrans("","")
+	for i in range(len(inputs)):
+		inputs[i] = inputs[i].translate(table, string.punctuation)
+	print('removed punctuation from tweet content')
+
+	return inputs
 
 def main():
 	"""
 	CLI Arguments allowed:
-		remove_stopwords     Removes stopwords from tweet content
+		keep_stopwords       Keep stopwords in tweet content
+		                     By default removes stopwords
 
 		keep_neutral_tweets  Keeps tweets with neutral sentiment
 		                     By default removes neutral tweets
@@ -117,18 +131,18 @@ def main():
 
 	corpus = load_csv()
 	inputs, targets = parse_corpus(corpus)
+	targets = (targets > 0) * 1 # Changes target array to 0s and 1s
 
 	if not 'keep_neutral_tweets' in cli_args:
 		inputs, targets = remove_neutral_tweets(inputs, targets)
 
-	if 'remove_stopwords' in cli_args:
+	if not 'keep_stopwords' in cli_args:
 		load_stopwords()
-		inputs, targets = remove_stopwords(inputs, targets, STOP_WORDS)
+		inputs = remove_stopwords(inputs, STOP_WORDS)
+
+	if not 'keep_punctuation' in cli_args:
+		inputs = remove_punctuation(inputs)
 
 	inputs, targets = remove_empty_tweets(inputs, targets)
-
-	exit()
-
-
 
 if __name__ == "__main__": main()
