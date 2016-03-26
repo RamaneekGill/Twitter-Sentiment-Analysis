@@ -58,13 +58,12 @@ def remove_neutral_tweets(inputs, targets):
 			np.delete(inputs, i)
 			np.delete(targets, i)
 
-	print('Removed {0} neutral tweets'.format(count))
+	print('removed {0} neutral tweets'.format(count))
 	return inputs, targets
 
 def remove_stopwords(inputs, targets, stopwords):
 	"""
-	Parses the inputs and removes stopwords. If the input (tweet) is empty
-	it will also remove the corresponding target (sentiment)
+	Parses the inputs and removes stopwords.
 
 	Returns:
 		inputs:  A numpy array of the tweets
@@ -77,20 +76,37 @@ def remove_stopwords(inputs, targets, stopwords):
 		tweet_list = inputs[i].split()
 		inputs[i] = ' '.join([j for j in tweet_list if j not in stopwords])
 
+	print('removed stopwords from tweets')
+	return inputs, targets
+
+def	remove_empty_tweets(inputs, targets):
+	"""
+	Parses the inputs and removes input and target where the input is empty.
+	Removes data where the tweet content is empty.
+
+	Returns:
+		inputs:  A numpy array of the tweets
+		targets: A numpy array of the sentiment, 1 for positive, 0 for negative
+	"""
+	print('removing empty tweets')
+
+	count = 0
+	for i in range(len(inputs)):
 		if inputs[i] == ' ' or inputs[i] == '':
 			count += 1
 			np.delete(inputs, i)
 			np.delete(targets, i)
 
-	print('removed stopwords from tweets')
-	print('Removed {0} tweets from dataset since tweets were empty'.format(count))
+	print('removed {0} tweets from dataset since tweets were empty'.format(count))
 	return inputs, targets
+
+
 
 def main():
 	"""
 	CLI Arguments allowed:
 		remove_stopwords     Removes stopwords from tweet content
-		
+
 		keep_neutral_tweets  Keeps tweets with neutral sentiment
 		                     By default removes neutral tweets
 
@@ -109,6 +125,7 @@ def main():
 		load_stopwords()
 		inputs, targets = remove_stopwords(inputs, targets, STOP_WORDS)
 
+	inputs, targets = remove_empty_tweets(inputs, targets)
 
 	exit()
 
