@@ -1,7 +1,21 @@
 # Twitter-Sentiment-Analysis
 Contains machine learning methods on predicting sentiments for tweets.
 
-### Data Used:
+### How to run this code yourself:
+ - Clone this repo. For convenience the parsed dataset has been uploaded in a
+ numpy array format
+  - To parse the raw data yourself if you've made changes to the `parse_dataset.py` file you will need the raw dataset, source for the raw data is below in this readme.
+  - Run `python parse_dataset.py`
+  - There are some convenient arguments you can pass in, a list of them are included in the doc block for the main method in `parse_dataset.py`
+ - Run `python *_runner.py` in the folder for the machine learning algorithm
+ you're interested in
+ - To display the graphs run the `runner` script with the argument `display_graphs`
+  - e.g. `python *_runner.py --display_graphs`
+ - I may or may not have uploaded the trained models into this repo. If there are no saved weights the scripts will automatically retrain.
+  - To force this behaviour run `python *_runner.py --retrain`
+
+
+### Data Source Used:
 - http://cs.stanford.edu/people/alecmgo/trainingandtestdata.zip
  - ~1.6 million tweet dataset with positive/negative sentiment attached
 
@@ -30,7 +44,7 @@ is positive or not.
 We will be training two models on this data. One will be trained using a Bayesian Network,
 the other will be trained using Latent Dirichlet allocation (LDA). The two models'
 classification errors, precision, and recall will be compared against each other
-in order to determine if the independance assumed from a Bayesian Network has an
+in order to determine if the independence assumed from a Bayesian Network has an
 advantage or disadvantage over a Gaussian class-conditional density in an LDA model
 for short texts.
 
