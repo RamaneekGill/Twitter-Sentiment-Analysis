@@ -2,9 +2,11 @@ import sys
 import string
 import numpy as np
 from pandas import read_csv
+from sklearn.utils import shuffle
 
 STOP_WORDS = np.array([])
 FILENAME = 'training_data.csv' # the training data csv
+RANDOM_SEED = 0
 
 def load_stopwords():
 	"""Loads the stopwords.txt file into an array"""
@@ -115,6 +117,17 @@ def remove_punctuation(inputs):
 
 	return inputs
 
+def shuffle_in_unison(inputs, targets, seed):
+	"""
+	Shuffles the input and targets array in unison.
+
+	Returns:
+		inputs:  A numpy array of the tweets
+		targets: A numpy array of the sentiment, 1 for positive, 0 for negative
+	"""
+	inputs, targets = shuffle(inputs, targets, random_state=seed)
+	return inputs, targets
+
 def main():
 	"""
 	CLI Arguments allowed:
@@ -144,5 +157,10 @@ def main():
 		inputs = remove_punctuation(inputs)
 
 	inputs, targets = remove_empty_tweets(inputs, targets)
+
+	inputs, targets = shuffle_in_unison(inputs, targets, RANDOM_SEED)
+
+	print inputs
+	print targets
 
 if __name__ == "__main__": main()
