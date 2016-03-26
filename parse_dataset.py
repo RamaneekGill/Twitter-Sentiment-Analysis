@@ -3,10 +3,11 @@ import string
 import numpy as np
 from pandas import read_csv
 from sklearn.utils import shuffle
+from sklearn.cross_validation import train_test_split
 
 STOP_WORDS = np.array([])
 FILENAME = 'training_data.csv' # the training data csv
-RANDOM_SEED = 0
+RANDOM_SEED = 1337
 
 def load_stopwords():
 	"""Loads the stopwords.txt file into an array"""
@@ -117,17 +118,6 @@ def remove_punctuation(inputs):
 
 	return inputs
 
-def shuffle_in_unison(inputs, targets, seed):
-	"""
-	Shuffles the input and targets array in unison.
-
-	Returns:
-		inputs:  A numpy array of the tweets
-		targets: A numpy array of the sentiment, 1 for positive, 0 for negative
-	"""
-	inputs, targets = shuffle(inputs, targets, random_state=seed)
-	return inputs, targets
-
 def main():
 	"""
 	CLI Arguments allowed:
@@ -144,6 +134,7 @@ def main():
 
 	corpus = load_csv()
 	inputs, targets = parse_corpus(corpus)
+	raw_inputs = inputs
 	targets = (targets > 0) * 1 # Changes target array to 0s and 1s
 
 	if not 'keep_neutral_tweets' in cli_args:
@@ -158,9 +149,39 @@ def main():
 
 	inputs, targets = remove_empty_tweets(inputs, targets)
 
-	inputs, targets = shuffle_in_unison(inputs, targets, RANDOM_SEED)
+	# Train set size      = 80 %
+	# Test set size       = 10 %
+	# Validation set size = 10 %
+	print('splitting data in to train, test, and validation sets')
+	inputs_train, inputs_test, targets_train, targets_test = train_test_split(
+		inputs,
+		targets,
+		test_size=0.2,
+		random_state=RANDOM_SEED
+	)
 
-	print inputs
-	print targets
+	inputs_test, inputs_valid, targets_test, targets_valid = train_test_split(
+		inputs_test,
+		targets_test,
+		test_size=0.5,
+		random_state=RANDOM_SEED
+	)
+	print('split data in to train, test, and validation sets')
+
+	assert len(inputs_train) == len(targets_train)
+	assert len(inputs_valid) == len(targets_valid)
+	assert len(inputs_test)  == len(targets_test)
+
+	print('Length of train set: {0}'.format(len(inputs_train)))
+	print('Length of validation set: {0}'.format(len(inputs_valid)))
+	print('Length of test set: {0}'.format(len(inputs_test)))
+
+	total_data_length = len(inputs_train) + len(inputs_valid) + len(inputs_test)
+	original_data_length = len(raw_inputs)
+
+	print('Original dataset length: {0}, parsed dataset length: {1}'.format(
+		original_data_length,
+		total_data_length
+	))
 
 if __name__ == "__main__": main()
