@@ -31,6 +31,7 @@ Contains machine learning methods on predicting sentiments for tweets.
  - NumPy
  - scikit-learn
  - TensorFlow
+ - NLTK
 
 ### Inquiries:
 Please email me at ramaneek.gill@hotmail.com
