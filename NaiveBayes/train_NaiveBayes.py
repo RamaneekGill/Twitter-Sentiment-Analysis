@@ -1,5 +1,7 @@
 import sys
 import nltk
+import pickle
+import os.path
 import operator
 import numpy as np
 
@@ -36,18 +38,23 @@ def trained_model_exists():
 	models are saved.
 
 	Returns:
-		boolean  True iff file 'features' exists
+		boolean  True iff file 'data/model.pkl' exists
 	"""
-	return False # TODO: implement later when saving features dictionary
+	return os.path.exists('data/model.pkl')
 
 def load_trained_model():
-	"""
-	Loads and returns the trained model
+	"""Loads and returns the trained model"""
+	print('loading trained model')
+	with open('data/model.pkl', 'rb') as input:
+		print('loaded trained model')
+    	return pickle.load(input)
 
-	Returns:
-		model  the model
-	"""
-	pass # TODO: implement later when saving features dictionary
+def save_model(classifier):
+	"""Saves the model"""
+	print('saving trained model')
+	with open('data/model.pkl', 'wb') as output:
+		pickle.dump(classifier, output, pickle.HIGHEST_PROTOCOL)
+		print('saved trained model')
 
 def load_features():
 	"""
@@ -58,7 +65,20 @@ def load_features():
 		valid_features  a dictionary of the features in the validation set
 		test_features   a dictionary of the features in the test set
 	"""
-	pass # TODO: implement later
+	print('loading extracted features')
+	train_features = np.load('data/train_features.npy')
+	valid_features = np.load('data/valid_features.npy')
+	test_features  = np.load('data/test_features.npy')
+	print('loaded extracted features')
+	return train_features, valid_features, test_features
+
+def save_features(train_features, valid_features, test_features):
+	"""Saves the extracted features for each dataset"""
+	print('saving extracted features')
+	np.save('data/train_features.npy', train_features)
+	np.save('data/valid_features.npy', valid_features)
+	np.save('data/test_features.npy', test_features)
+	print('saved extracted features')
 
 def build_vocabulary(inputs):
 	"""
@@ -118,12 +138,24 @@ def extract_features(inputs_train, targets_train, inputs_valid, targets_valid, i
 	words = words.keys()
 
 	print('extracting features')
+	test_features  = [(build_features(inputs_test[i], i, words), targets_test[i]) for i in range(len(inputs_test))]
 	train_features = [(build_features(inputs_train[i], i, words), targets_train[i]) for i in range(len(inputs_train))]
 	valid_features = [(build_features(inputs_valid[i], i, words), targets_valid[i]) for i in range(len(inputs_valid))]
-	test_features  = [(build_features(inputs_test[i], i, words), targets_test[i]) for i in range(len(inputs_test))]
 	print('extracted features')
 
-	return train_features, valid_features, test_features
+	return np.array(train_features), np.array(valid_features), np.array(test_features)
+
+def train_model(features):
+	"""
+	Trains a Naive Bayes classifier using the features passed in.
+
+	Returns:
+		classifier  the trained model
+	"""
+	print('training model')
+	classifier = nltk.NaiveBayesClassifier.train(features)
+	print('trained model')
+	return classifier
 
 def main():
 	"""
@@ -146,13 +178,15 @@ def main():
 			inputs_test[:len(inputs_test)*0.1],
 			targets_test[:len(targets_test)*0.1]
 		)
+
+		save_features(train_features, valid_features, test_features)
+		classifier = train_model(train_features)
+		save_model(classifier)
+
 	else:
 		train_features, valid_features, test_features = load_features()
 		classifier = load_trained_model()
 
-	print('training model')
-	classifier = nltk.NaiveBayesClassifier.train(train_features)
-	print('trained model')
 	print(nltk.classify.accuracy(classifier, test_features))
 	print(classifier.show_most_informative_features(50))
 
