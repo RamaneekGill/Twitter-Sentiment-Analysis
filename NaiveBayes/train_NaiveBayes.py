@@ -67,7 +67,7 @@ def build_vocabulary_list(inputs):
 	return vocabulary
 
 
-def train_model(inputs_train, inputs_valid, inputs_test, targets_train, targets_valid, targets_test):
+def train_model(inputs_train, targets_train, inputs_valid, targets_valid, inputs_test, targets_test):
 	"""
 	Trains the model. For Naive Bayes this is just extracting the features
 	from the input data.
@@ -85,12 +85,7 @@ def train_model(inputs_train, inputs_valid, inputs_test, targets_train, targets_
 		                 dataset for each tweet
 		                 {'contains(lol)': False, 'contains(jbiebs)': True, ...}
 	"""
-	print len(inputs_train)
-	print len(inputs_valid)
-	print len(inputs_test)
 	inputs = np.hstack((inputs_train, inputs_valid, inputs_test))
-	print len(inputs)
-	exit()
 	vocabulary = build_vocabulary_list(inputs)
 
 	print('training model')
