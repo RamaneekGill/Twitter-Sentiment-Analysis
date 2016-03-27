@@ -1,3 +1,10 @@
+"""
+
+This file trains a Naive Bayes model using NLTK, don't run this file
+since it consumes a lot of memory due to poor design decisions on NLTK's part.
+
+"""
+
 import sys
 import nltk
 import pickle
