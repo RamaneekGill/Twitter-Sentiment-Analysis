@@ -5,9 +5,14 @@ import operator
 import numpy as np
 from sklearn.naive_bayes import MultinomialNB
 
+### Global variables
 display_graphs = False # Boolean flag for displaying graphs
 vocabulary = {} # A dictionary of all the unique words in the corpus
-NUM_FEATURES = 1000 # The number of most common words in the corpus to use as features
+
+### Change me to higher values for better accuracy!
+NUM_FEATURES = 2000 # The number of most common words in the corpus to use as features
+PERCENTAGE_DATA_SET_TO_USE = 0.1 # The percentage of the dataset to use
+
 
 def load_parsed_data():
 	"""
@@ -136,13 +141,12 @@ def extract_features(inputs_train, targets_train, inputs_valid, targets_valid, i
 	global NUM_FEATURES
 	words = dict(sorted(vocabulary.iteritems(), key=operator.itemgetter(1), reverse=True)[:NUM_FEATURES])
 	words = words.keys()
-	print('using {} most common words as features'.format(NUM_FEATURES))
 
-	print('extracting features')
+	print('extracting features for all tweets')
 	train_features = [(build_features(inputs_train[i], i, words)) for i in range(len(inputs_train))]
 	valid_features = [(build_features(inputs_valid[i], i, words)) for i in range(len(inputs_valid))]
 	test_features  = [(build_features(inputs_test[i], i, words)) for i in range(len(inputs_test))]
-	print('extracted features')
+	print('extracted features for all tweets')
 
 	return np.array(train_features), np.array(valid_features), np.array(test_features)
 
@@ -171,14 +175,17 @@ def main():
 	if 'display_graphs' in sys.argv:
 		display_graphs = True
 
+	print('using {} percent of all data in corpus'.format(PERCENTAGE_DATA_SET_TO_USE*100))
+	print('using {} most common words as features'.format(NUM_FEATURES))
+
 	if not trained_model_exists() or '--retrain' in sys.argv:
 		train_features, valid_features, test_features = extract_features(
-			inputs_train[:len(inputs_train)*0.1],
-			targets_train[:len(targets_train)*0.1],
-			inputs_valid[:len(inputs_valid)*0.1],
-			targets_valid[:len(targets_valid)*0.1],
-			inputs_test[:len(inputs_test)*0.1],
-			targets_test[:len(targets_test)*0.1]
+			inputs_train[:len(inputs_train)*PERCENTAGE_DATA_SET_TO_USE],
+			targets_train[:len(targets_train)*PERCENTAGE_DATA_SET_TO_USE],
+			inputs_valid[:len(inputs_valid)*PERCENTAGE_DATA_SET_TO_USE],
+			targets_valid[:len(targets_valid)*PERCENTAGE_DATA_SET_TO_USE],
+			inputs_test[:len(inputs_test)*PERCENTAGE_DATA_SET_TO_USE],
+			targets_test[:len(targets_test)*PERCENTAGE_DATA_SET_TO_USE]
 		)
 
 		save_features(train_features, valid_features, test_features)
@@ -187,8 +194,8 @@ def main():
 		print targets_train.shape
 		print targets_train[0].shape
 		print targets_train
-		assert train_features.shape[0] == targets_train[:len(targets_train)*0.1].shape[0]
-		classifier = train_model(train_features, targets_train[:len(targets_train)*0.1])
+		assert train_features.shape[0] == targets_train[:len(targets_train)*PERCENTAGE_DATA_SET_TO_USE].shape[0]
+		classifier = train_model(train_features, targets_train[:len(targets_train)*PERCENTAGE_DATA_SET_TO_USE])
 		save_model(classifier)
 
 	else:
@@ -197,6 +204,6 @@ def main():
 
 	perdictions = classifier.predict(test_features)
 	print("Number of mislabeled points out of a total %d points : %d"
-	% (test_features.shape[0],(targets_test[:len(targets_test)*0.1] != perdictions).sum()))
+	% (test_features.shape[0],(targets_test[:len(targets_test)*PERCENTAGE_DATA_SET_TO_USE] != perdictions).sum()))
 
 if __name__ == "__main__": main()
