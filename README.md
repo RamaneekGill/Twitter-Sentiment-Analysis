@@ -1,18 +1,24 @@
 # Twitter-Sentiment-Analysis
-Contains machine learning methods on predicting sentiments for tweets.
+Contains machine learning methods used for predicting sentiments for tweets. :8ball: :bird: !
 
 ### How to run this code yourself:
- - Clone this repo. For convenience the parsed dataset has been uploaded in a
- numpy array format
-  - To parse the raw data yourself if you've made changes to the `parse_dataset.py` file you will need the raw dataset, source for the raw data is below in this readme.
-  - Run `python parse_dataset.py`
-  - There are some convenient arguments you can pass in, a list of them are included in the doc block for the main method in `parse_dataset.py`
- - Run `python *_runner.py` in the folder for the machine learning algorithm
- you're interested in
- - To display the graphs run the `runner` script with the argument `display_graphs`
-  - e.g. `python *_runner.py --display_graphs`
- - I may or may not have uploaded the trained models into this repo. If there are no saved weights the scripts will automatically retrain.
-  - To force this behaviour run `python *_runner.py --retrain`
+- Clone this repo. For convenience the parsed dataset has been uploaded in a numpy array format
+ - To parse the raw data yourself if you've made changes to the `parse_dataset.py` file you will need the raw dataset, source for the raw data is below in this readme.
+ - Run `python parse_dataset.py`
+ - There are some convenient arguments you can pass in, a list of them are included in the doc block for the main method in `parse_dataset.py`
+
+- Run `python *_runner.py` in the folder for the machine learning algorithm you wish to run
+ - e.g. `python *_runner.py --display_graphs`
+ - I may or may not have uploaded the trained models into this repo. If there are no saved models/weights the scripts will automatically retrain.
+ - Please don't be mad if you have to train most models yourself, disk space on a small SSD is hard to come by
+ - If you really don't want to train the models yourself but are super curious shoot me an email!
+
+- To (re)train the models run `python *_runner.py --retrain`
+ - To run cross validation to train the best fine tuned model run `python *_runner.py --retrain --cross-validate`
+- To display the graphs run `python *_runner.py --display_graphs`
+- To see the accuracy results for a model run `python *_runner.py --test=test_set`
+ - No I did not cheat while training, commit history will show everything I've done.
+ - Besides the results are ground breaking anyways...
 
 
 ### Data Source Used:
@@ -29,9 +35,10 @@ Contains machine learning methods on predicting sentiments for tweets.
 
 ### Tools Used:
  - NumPy
- - scikit-learn
+ - sklearn
  - TensorFlow
  - NLTK
+ - Install these by running `pip install {package name}` in your terminal/shell
 
 ### Inquiries:
 Please email me at ramaneek.gill@hotmail.com
