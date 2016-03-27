@@ -1,9 +1,11 @@
 import sys
 import nltk
+import operator
 import numpy as np
 
 display_graphs = False # Boolean flag for displaying graphs
 vocabulary = {} # A dictionary of all the unique words in the corpus
+NUM_FEATURES = 500 # The number of most common words in the corpus to use as features
 
 def load_parsed_data():
 	"""
@@ -38,6 +40,15 @@ def trained_model_exists():
 	"""
 	return False # TODO: implement later when saving features dictionary
 
+def load_trained_model():
+	"""
+	Loads and returns the trained model
+
+	Returns:
+		model  the model
+	"""
+	pass # TODO: implement later when saving features dictionary
+
 def load_features():
 	"""
 	Loads the extracted features for each data set
@@ -49,28 +60,41 @@ def load_features():
 	"""
 	pass # TODO: implement later
 
-def build_vocabulary_list(inputs):
+def build_vocabulary(inputs):
 	"""
-	Builds a list of unique words in the dataset
+	Builds a dictionary of unique words in the corpus
 
 	Returns:
-		vocabulary  a list of all the unique words in the corpus
+		vocabulary  a dictionary of all the unique words in the corpus
 	"""
 	print('building vocabulary of words in the corpus')
 	global vocabulary
 
 	for tweet in inputs:
 		for word in str(tweet).split():
-			vocabulary[word] = word
+			if vocabulary.has_key(word):
+				vocabulary[word] += 1
+			else:
+				vocabulary[word] = 1
 
 	print('built vocabulary of words in the corpus')
 	return vocabulary
 
+def build_features(document, i, vocabulary_words):
+	global vocabulary
 
-def train_model(inputs_train, targets_train, inputs_valid, targets_valid, inputs_test, targets_test):
+	if i % 500 == 0:
+		print('extracted features for {0} tweets'.format(i))
+
+	document_words = set(str(document).split())
+	features = {}
+	for word in vocabulary_words:
+		features['{}'.format(word)] = (word in document_words)
+	return features
+
+def extract_features(inputs_train, targets_train, inputs_valid, targets_valid, inputs_test, targets_test):
 	"""
-	Trains the model. For Naive Bayes this is just extracting the features
-	from the input data.
+	Extracts features for training the model.
 
 	Returns:
 		train_features   a dictionary of word presence in the entire input
@@ -86,12 +110,18 @@ def train_model(inputs_train, targets_train, inputs_valid, targets_valid, inputs
 		                 {'contains(lol)': False, 'contains(jbiebs)': True, ...}
 	"""
 	inputs = np.hstack((inputs_train, inputs_valid, inputs_test))
-	vocabulary = build_vocabulary_list(inputs)
+	vocabulary = build_vocabulary(inputs)
 
-	print('training model')
-	train_features = [(build_features(inputs_train[i]), targets_train[i]) for i in range(len(inputs_train))]
-	valid_features = [(build_features(inputs_valid[i]), targets_valid[i]) for i in range(len(inputs_valid))]
-	test_features  = [(build_features(inputs_test[i]), targets_test[i]) for i in range(len(inputs_test))]
+	# Get most common words from vocabulary
+	global NUM_FEATURES
+	words = dict(sorted(vocabulary.iteritems(), key=operator.itemgetter(1), reverse=True)[:NUM_FEATURES])
+	words = words.keys()
+
+	print('extracting features')
+	train_features = [(build_features(inputs_train[i], i, words), targets_train[i]) for i in range(len(inputs_train))]
+	valid_features = [(build_features(inputs_valid[i], i, words), targets_valid[i]) for i in range(len(inputs_valid))]
+	test_features  = [(build_features(inputs_test[i], i, words), targets_test[i]) for i in range(len(inputs_test))]
+	print('extracted features')
 
 	return train_features, valid_features, test_features
 
@@ -108,15 +138,22 @@ def main():
 		display_graphs = True
 
 	if not trained_model_exists() or 'retrain' in sys.argv:
-		train_features, valid_features, test_features = train_model(
-			inputs_train,
-			targets_train,
-			inputs_valid,
-			targets_valid,
-			inputs_test,
-			targets_test
+		train_features, valid_features, test_features = extract_features(
+			inputs_train[:len(inputs_train)*0.1],
+			targets_train[:len(targets_train)*0.1],
+			inputs_valid[:len(inputs_valid)*0.1],
+			targets_valid[:len(targets_valid)*0.1],
+			inputs_test[:len(inputs_test)*0.1],
+			targets_test[:len(targets_test)*0.1]
 		)
 	else:
 		train_features, valid_features, test_features = load_features()
+		classifier = load_trained_model()
+
+	print('training model')
+	classifier = nltk.NaiveBayesClassifier.train(train_features)
+	print('trained model')
+	print(nltk.classify.accuracy(classifier, test_features))
+	print(classifier.show_most_informative_features(50))
 
 if __name__ == "__main__": main()
