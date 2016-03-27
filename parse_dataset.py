@@ -195,6 +195,7 @@ def main():
 	np.save('parsed_data/targets_valid.npy', targets_valid)
 	np.save('parsed_data/inputs_test.npy', inputs_test)
 	np.save('parsed_data/targets_test.npy', targets_test)
+	np.save('parsed_data/raw_inputs.npy', raw_inputs)
 	print('saved parsed dataset')
 
 	print('parsing complete!')
