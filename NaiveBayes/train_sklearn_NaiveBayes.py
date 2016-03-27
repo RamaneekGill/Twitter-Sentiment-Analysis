@@ -1,3 +1,12 @@
+"""
+CLI Arguments allowed:
+	display_graphs       Displays graphs
+	retrain              Trains a new model
+	cross-validate       Runs cross validation to fine tune the model
+	test-validation_set  Tests the latest trained model against the validation set
+	test-test_set        Tests the latets trained model against the test set
+"""
+
 import sys
 import pickle
 import os.path
@@ -163,16 +172,28 @@ def train_model(features, targets):
 	print('trained model')
 	return classifier
 
+def cross_validate(valid_features, targets_valid):
+	"""
+	Runs cross validation using adjustable MultinomialNB params.
+
+	Returns:
+		The model that is the most accurate
+	"""
+	pass # TODO do grid search
+
 def main():
 	"""
 	CLI Arguments allowed:
-		display_graphs  Displays graphs
-		retrain         Trains a new model
+		--display_graphs       Displays graphs
+		--retrain              Trains a new model
+		--cross-validate       Runs cross validation to fine tune the model
+		--test=validation_set  Tests the latest trained model against the validation set
+		--test=test_set        Tests the latets trained model against the test set
 	"""
 
 	inputs_train, targets_train, inputs_valid, targets_valid, inputs_test, targets_test = load_parsed_data()
 
-	if 'display_graphs' in sys.argv:
+	if '--display_graphs' in sys.argv:
 		display_graphs = True
 
 	print('using {} percent of all data in corpus'.format(PERCENTAGE_DATA_SET_TO_USE*100))
@@ -189,12 +210,6 @@ def main():
 		)
 
 		save_features(train_features, valid_features, test_features)
-
-		print train_features.shape
-		print targets_train.shape
-		print targets_train[0].shape
-		print targets_train
-		assert train_features.shape[0] == targets_train[:len(targets_train)*PERCENTAGE_DATA_SET_TO_USE].shape[0]
 		classifier = train_model(train_features, targets_train[:len(targets_train)*PERCENTAGE_DATA_SET_TO_USE])
 		save_model(classifier)
 
@@ -202,8 +217,15 @@ def main():
 		train_features, valid_features, test_features = load_features()
 		classifier = load_trained_model()
 
-	perdictions = classifier.predict(test_features)
-	print("Number of mislabeled points out of a total %d points : %d"
-	% (test_features.shape[0],(targets_test[:len(targets_test)*PERCENTAGE_DATA_SET_TO_USE] != perdictions).sum()))
+	if '--cross-validate' in sys.argv:
+		cross_validate(valid_features, targets_valid)
+
+	if '--test=validation_set' in sys.argv:
+		score = classifier.score(valid_features, targets_valid[:len(targets_valid)*PERCENTAGE_DATA_SET_TO_USE])
+		print('Accuracy against validation set is {} percent'.format(score*100))
+
+	if '--test=test_set' in sys.argv:
+		score = classifier.score(test_features, targets_test[:len(targets_test)*PERCENTAGE_DATA_SET_TO_USE])
+		print('Accuracy against test set is {} percent'.format(score*100))
 
 if __name__ == "__main__": main()
