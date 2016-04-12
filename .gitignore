@@ -1,3 +1,5 @@
 /training_data.csv
 /.DS_Store
 */data
+*.npy
+*.pkl
