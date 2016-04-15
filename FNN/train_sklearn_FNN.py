@@ -1,12 +1,14 @@
 from __future__ import print_function
 from time import time
-from sklearn.grid_search import GridSearchCV
-from sklearn.metrics import classification_report
-from sklearn.metrics import confusion_matrix
-from sklearn.svm import SVC
 import numpy as np
 import sys, os, operator, pickle
 from sklearn.decomposition import RandomizedPCA
+from pybrain.structure import TanhLayer
+from pybrain.datasets            import ClassificationDataSet
+from pybrain.utilities           import percentError
+from pybrain.tools.shortcuts     import buildNetwork
+from pybrain.supervised.trainers import BackpropTrainer
+from pybrain.structure.modules   import SoftmaxLayer
 
 ### Global variables
 display_graphs = False # Boolean flag for displaying graphs
@@ -14,8 +16,12 @@ vocabulary = {} # A dictionary of all the unique words in the corpus
 
 ### Change me to higher values for better accuracy!
 NUM_FEATURES = 2000 # The number of most common words in the corpus to use as features
-PERCENTAGE_DATA_SET_TO_USE = 0.05 # The percentage of the dataset to use
+PERCENTAGE_DATA_SET_TO_USE = 0.01 # The percentage of the dataset to use
 N_COMPONENTS = 150 # The number of components for the PCA
+N_HIDDEN = 32
+N_EPOCHS = 10
+trainer = None
+classifier = None
 
 ###############################################################################
 
@@ -168,37 +174,23 @@ def extract_features(inputs_train, targets_train, inputs_valid, targets_valid, i
 
     return np.array(train_features), np.array(valid_features), np.array(test_features)
 
-def train_model(features, targets):
+def train_model( trndata ):
     print("Fitting the classifier to the training set")
     t0 = time()
-    clf = SVC()
-    clf.fit(features, targets)
+    for i in range(1, N_EPOCHS+1):
+            trainer.trainEpochs(1)
     print("done in %0.3fs" % (time() - t0))
-    return clf
+    return
 
 def grid_search_train_model(features, targets):
+    pass
 
-    print("Fitting the classifier to the training set using grid search")
-    t0 = time()
-    param_grid = {'C': [1e3, 5e3, 1e4, 5e4, 1e5],
-              'gamma': [0.0001, 0.0005, 0.001, 0.005, 0.01, 0.1], }
-    clf = GridSearchCV(SVC(kernel='rbf'), param_grid)
-    clf = clf.fit(features, targets)
-    print("done in %0.3fs" % (time() - t0))
-    print("Best estimator found by grid search:")
-    print(clf.best_estimator_)
-    return clf
-
-def make_prediction( clf, X, targets):
-    y_pred = clf.predict(X)
-    target_names = ['Negative', 'Positive']
-    print(classification_report(targets, y_pred, target_names=target_names))
-    print(confusion_matrix(targets, y_pred, labels=range(len(target_names))))
-    count = 0
-    for i in range(len(y_pred)):
-        if y_pred[i] == targets[i]:
-            count += 1
-    return count/float(len(y_pred))
+def make_prediction(tstdata):
+    global trainer
+    if trainer is not None:
+        print ('Percent Error on Valid dataset: ', percentError(trainer.testOnClassData(
+                        dataset=tstdata)
+                        , tstdata['class']))
 
 def main():
     """
@@ -210,6 +202,7 @@ def main():
         --test=test_set        Tests the latets trained model against the test set
     """
 
+    global trainer, classifier
     inputs_train, targets_train, inputs_valid, targets_valid, inputs_test, targets_test = load_parsed_data()
 
     if '--display_graphs' in sys.argv:
@@ -233,32 +226,66 @@ def main():
         save_pca(pca)
         print ("Saved PCA")
         X_train = pca.transform(train_features)
+
         pca = None
         print ("Created PCAd features")
 
-        classifier = train_model( X_train, targets_train[:len(targets_train)*PERCENTAGE_DATA_SET_TO_USE])
-        save_model(classifier)
+        train_data = ClassificationDataSet(N_COMPONENTS, target=1, nb_classes=2)
+        for i in range(len(X_train)):
+            train_data.addSample( X_train[i], targets_train[i])
+        train_data._convertToOneOfMany()
         X_train = None
+
+        classifier = buildNetwork( train_data.indim, N_HIDDEN, train_data.outdim, outclass=SoftmaxLayer)#, hiddenclass=TanhLayer)
+        trainer = BackpropTrainer( classifier, dataset=train_data, momentum=0.1, learningrate=0.01 , verbose=True, weightdecay=0.01)
+        train_model( train_data )
+
+        save_model(classifier)
+        train_data = None
 
     else:
         train_features, valid_features, test_features = load_features()
-        classifier = load_trained_model()
+        pca = load_pca()
+        X_train = pca.transform(train_features)
 
+        pca = None
+        print ("Created PCAd features")
+
+        train_data = ClassificationDataSet(N_COMPONENTS, target=1, nb_classes=2)
+        for i in range(len(X_train)):
+            train_data.addSample( X_train[i], targets_train[i])
+        train_data._convertToOneOfMany()
+        X_train = None
+
+        classifier = load_trained_model()
+        trainer = BackpropTrainer( classifier, dataset=train_data, momentum=0.1, learningrate=0.01 , verbose=True, weightdecay=0.01)
 
 
     if '--test=validation_set' in sys.argv:
         pca = load_pca()
         X_valid = pca.transform(valid_features)
         pca = None
-        score = make_prediction( classifier, X_valid, targets_valid[:len(targets_valid)*PERCENTAGE_DATA_SET_TO_USE])
-        print('Accuracy against validation set is {} percent'.format(score*100))
+        valid_data = ClassificationDataSet(N_COMPONENTS, target=1, nb_classes=2)
+        for i in range(len(X_valid)):
+            valid_data.addSample( X_valid[i], targets_test[i])
+        valid_data._convertToOneOfMany()
         X_valid = None
+
+        make_prediction(valid_data)
+        #print('Accuracy against validation set is {} percent'.format(score*100))
+
 
     if True:#if '--test=test_set' in sys.argv:
         pca = load_pca()
         X_test = pca.transform(test_features)
         pca = None
-        score = make_prediction( classifier, X_test, targets_test[:len(targets_test)*PERCENTAGE_DATA_SET_TO_USE])
-        print('Accuracy against test set is {} percent'.format(score*100))
+        test_data = ClassificationDataSet(N_COMPONENTS, target=1, nb_classes=2)
+        for i in range(len(X_test)):
+            test_data.addSample( X_test[i], targets_test[i])
+        test_data._convertToOneOfMany()
+        X_test = None
+
+        make_prediction(test_data)
+        #print('Accuracy against test set is {} percent'.format(score*100))
 
 if __name__ == "__main__": main()
