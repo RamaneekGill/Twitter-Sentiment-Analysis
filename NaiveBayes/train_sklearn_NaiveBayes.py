@@ -12,7 +12,9 @@ import pickle
 import os.path
 import operator
 import numpy as np
+from scipy.stats import uniform as sp_rand
 from sklearn.naive_bayes import MultinomialNB
+from sklearn.grid_search import RandomizedSearchCV
 
 ### Global variables
 display_graphs = False # Boolean flag for displaying graphs
@@ -21,7 +23,7 @@ vocabulary = {} # A dictionary of all the unique words in the corpus
 ### Change me to higher values for better accuracy!
 NUM_FEATURES = 2000 # The number of most common words in the corpus to use as features
 PERCENTAGE_DATA_SET_TO_USE = 0.1 # The percentage of the dataset to use
-
+N_CV_ITERS = 10 # The number of iterations to use in randomized cross validation
 
 def load_parsed_data():
 	"""
@@ -65,10 +67,10 @@ def load_trained_model():
 		input.close()
 	return classifier
 
-def save_model(classifier):
+def save_model(classifier, prefix=''):
 	"""Saves the model"""
 	print('saving trained model')
-	with open('data/model.pkl', 'wb') as output:
+	with open('data/'+prefix+'model.pkl', 'wb') as output:
 		pickle.dump(classifier, output, pickle.HIGHEST_PROTOCOL)
 		print('saved trained model')
 
@@ -159,7 +161,7 @@ def extract_features(inputs_train, targets_train, inputs_valid, targets_valid, i
 
 	return np.array(train_features), np.array(valid_features), np.array(test_features)
 
-def train_model(features, targets):
+def train_model(features, targets, alpha=1):
 	"""
 	Trains a Naive Bayes classifier using the features passed in.
 
@@ -167,19 +169,26 @@ def train_model(features, targets):
 		classifier  the trained model
 	"""
 	print('training model')
-	classifier = MultinomialNB()
+	classifier = MultinomialNB(alpha=alpha)
 	classifier.fit(features, targets)
 	print('trained model')
 	return classifier
 
-def cross_validate(valid_features, targets_valid):
+def cross_validate(train_features, targets_train, iters):
 	"""
-	Runs cross validation using adjustable MultinomialNB params.
+	Runs randomized cross validation using adjustable MultinomialNB params.
 
 	Returns:
 		The model that is the most accurate
 	"""
-	pass # TODO do grid search
+	print('starting cross validation')
+	param_grid = {'alpha': sp_rand()}
+	model = MultinomialNB()
+	rsearch = RandomizedSearchCV(estimator=model, param_distributions=param_grid, n_iter=iters)
+	rsearch.fit(train_features, targets_train)
+	print('finished cross validation')
+	print('best model has a score of {} using alpha={}'.format(rsearch.best_score_, rsearch.best_estimator_.alpha))
+	return rsearch.best_estimator_.alpha
 
 def main():
 	"""
@@ -193,6 +202,14 @@ def main():
 
 	inputs_train, targets_train, inputs_valid, targets_valid, inputs_test, targets_test = load_parsed_data()
 
+	# Limit the data used to make it possible to run on old machines
+	inputs_train  = inputs_train[:len(inputs_train)*PERCENTAGE_DATA_SET_TO_USE]
+	targets_train = targets_train[:len(targets_train)*PERCENTAGE_DATA_SET_TO_USE]
+	inputs_valid  = inputs_valid[:len(inputs_valid)*PERCENTAGE_DATA_SET_TO_USE]
+	targets_valid = targets_valid[:len(targets_valid)*PERCENTAGE_DATA_SET_TO_USE]
+	inputs_test   = inputs_test[:len(inputs_test)*PERCENTAGE_DATA_SET_TO_USE]
+	targets_test  = targets_test[:len(targets_test)*PERCENTAGE_DATA_SET_TO_USE]
+
 	if '--display_graphs' in sys.argv:
 		display_graphs = True
 
@@ -201,16 +218,16 @@ def main():
 
 	if not trained_model_exists() or '--retrain' in sys.argv:
 		train_features, valid_features, test_features = extract_features(
-			inputs_train[:len(inputs_train)*PERCENTAGE_DATA_SET_TO_USE],
-			targets_train[:len(targets_train)*PERCENTAGE_DATA_SET_TO_USE],
-			inputs_valid[:len(inputs_valid)*PERCENTAGE_DATA_SET_TO_USE],
-			targets_valid[:len(targets_valid)*PERCENTAGE_DATA_SET_TO_USE],
-			inputs_test[:len(inputs_test)*PERCENTAGE_DATA_SET_TO_USE],
-			targets_test[:len(targets_test)*PERCENTAGE_DATA_SET_TO_USE]
+			inputs_train,
+			targets_train,
+			inputs_valid,
+			targets_valid,
+			inputs_test,
+			targets_test
 		)
 
 		save_features(train_features, valid_features, test_features)
-		classifier = train_model(train_features, targets_train[:len(targets_train)*PERCENTAGE_DATA_SET_TO_USE])
+		classifier = train_model(train_features, targets_train)
 		save_model(classifier)
 
 	else:
@@ -218,14 +235,16 @@ def main():
 		classifier = load_trained_model()
 
 	if '--cross-validate' in sys.argv:
-		cross_validate(valid_features, targets_valid)
+		alpha = cross_validate(train_features, targets_train, N_CV_ITERS)
+		train_model(train_features, targets_train, alpha)
+		save_model(classifier, 'cross_validated_')
 
 	if '--test=validation_set' in sys.argv:
-		score = classifier.score(valid_features, targets_valid[:len(targets_valid)*PERCENTAGE_DATA_SET_TO_USE])
+		score = classifier.score(valid_features, targets_valid)
 		print('Accuracy against validation set is {} percent'.format(score*100))
 
 	if '--test=test_set' in sys.argv:
-		score = classifier.score(test_features, targets_test[:len(targets_test)*PERCENTAGE_DATA_SET_TO_USE])
+		score = classifier.score(test_features, targets_test)
 		print('Accuracy against test set is {} percent'.format(score*100))
 
 if __name__ == "__main__": main()
