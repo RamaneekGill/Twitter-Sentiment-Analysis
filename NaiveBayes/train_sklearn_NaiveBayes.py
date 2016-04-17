@@ -1,5 +1,13 @@
 """
+Author: Ramaneek Gill
+
+This program uses Multinomial Naive Bayes to predict tweet sentiments.
+
+By default this trains on only 10% of the available dataset so that
+old machines or laptops don't run into 12+ GB RAM usage.
+
 CLI Arguments allowed:
+	give_me_the_data     Uses the full training set
 	display_graphs       Displays graphs
 	retrain              Trains a new model
 	cross-validate       Runs cross validation to fine tune the model
@@ -203,12 +211,15 @@ def main():
 	inputs_train, targets_train, inputs_valid, targets_valid, inputs_test, targets_test = load_parsed_data()
 
 	# Limit the data used to make it possible to run on old machines
-	inputs_train  = inputs_train[:len(inputs_train)*PERCENTAGE_DATA_SET_TO_USE]
-	targets_train = targets_train[:len(targets_train)*PERCENTAGE_DATA_SET_TO_USE]
-	inputs_valid  = inputs_valid[:len(inputs_valid)*PERCENTAGE_DATA_SET_TO_USE]
-	targets_valid = targets_valid[:len(targets_valid)*PERCENTAGE_DATA_SET_TO_USE]
-	inputs_test   = inputs_test[:len(inputs_test)*PERCENTAGE_DATA_SET_TO_USE]
-	targets_test  = targets_test[:len(targets_test)*PERCENTAGE_DATA_SET_TO_USE]
+	if 'give_me_the_data' not in sys.argv:
+		inputs_train  = inputs_train[:len(inputs_train)*PERCENTAGE_DATA_SET_TO_USE]
+		targets_train = targets_train[:len(targets_train)*PERCENTAGE_DATA_SET_TO_USE]
+		inputs_valid  = inputs_valid[:len(inputs_valid)*PERCENTAGE_DATA_SET_TO_USE]
+		targets_valid = targets_valid[:len(targets_valid)*PERCENTAGE_DATA_SET_TO_USE]
+		inputs_test   = inputs_test[:len(inputs_test)*PERCENTAGE_DATA_SET_TO_USE]
+		targets_test  = targets_test[:len(targets_test)*PERCENTAGE_DATA_SET_TO_USE]
+	else:
+		print('WARNING: You are using the entire data set, this will consume 12+ GB of RAM')
 
 	if '--display_graphs' in sys.argv:
 		display_graphs = True
