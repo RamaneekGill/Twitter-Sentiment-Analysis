@@ -27,8 +27,6 @@ Contains machine learning methods used for predicting sentiments for tweets. :8b
 
 - To see the accuracy results for a model run `python *_runner.py --test=test_set`
  - No I did not cheat while training, commit history will show everything I've done.
- - Besides the results are ground breaking anyways...
- 
 
 ### Data Source Used:
 - http://cs.stanford.edu/people/alecmgo/trainingandtestdata.zip
