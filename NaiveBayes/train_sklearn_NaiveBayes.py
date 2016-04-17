@@ -6,6 +6,13 @@ This program uses Multinomial Naive Bayes to predict tweet sentiments.
 By default this trains on only 10% of the available dataset so that
 old machines or laptops don't run into 12+ GB RAM usage.
 
+Also by default this program only uses the top 2000 most common words
+as features to save computation, setting this to a higher threshold
+should improve accuracy.
+
+For more ways on how to make this machine learning implementation
+more powerful take a look at the constants in this program.
+
 CLI Arguments allowed:
 	give_me_the_data     Uses the full training set
 	display_graphs       Displays graphs
@@ -13,6 +20,17 @@ CLI Arguments allowed:
 	cross-validate       Runs cross validation to fine tune the model
 	test-validation_set  Tests the latest trained model against the validation set
 	test-test_set        Tests the latets trained model against the test set
+
+ _____            _   _                      _      ___              _           _
+/  ___|          | | (_)                    | |    / _ \            | |         (_)
+\ `--.  ___ _ __ | |_ _ _ __ ___   ___ _ __ | |_  / /_\ \_ __   __ _| |_   _ ___ _ ___
+ `--. \/ _ \ '_ \| __| | '_ ` _ \ / _ \ '_ \| __| |  _  | '_ \ / _` | | | | / __| / __|
+/\__/ /  __/ | | | |_| | | | | | |  __/ | | | |_  | | | | | | | (_| | | |_| \__ \ \__ \\
+\____/ \___|_| |_|\__|_|_| |_| |_|\___|_| |_|\__| \_| |_/_| |_|\__,_|_|\__, |___/_|___/
+                                                                        __/ |
+                                                                       |___/
+
+Machine learning has begun!
 """
 
 import sys
@@ -28,7 +46,6 @@ from sklearn.metrics import precision_recall_curve
 from sklearn.metrics import average_precision_score
 
 ### Global variables
-display_graphs = False # Boolean flag for displaying graphs
 vocabulary = {} # A dictionary of all the unique words in the corpus
 
 ### Change me to higher values for better accuracy!
@@ -230,6 +247,8 @@ def main():
 		--test=test_set        Tests the latets trained model against the test set
 	"""
 
+	print(__doc__)
+
 	inputs_train, targets_train, inputs_valid, targets_valid, inputs_test, targets_test = load_parsed_data()
 
 	# Limit the data used to make it possible to run on old machines
@@ -245,6 +264,8 @@ def main():
 
 	if '--display_graphs' in sys.argv:
 		display_graphs = True
+	else:
+		display_graphs = False
 
 	print('using {} percent of all data in corpus'.format(PERCENTAGE_DATA_SET_TO_USE*100))
 	print('using {} most common words as features'.format(NUM_FEATURES))
