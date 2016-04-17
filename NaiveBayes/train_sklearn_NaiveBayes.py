@@ -20,9 +20,12 @@ import pickle
 import os.path
 import operator
 import numpy as np
+import matplotlib.pyplot as plt
 from scipy.stats import uniform as sp_rand
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.grid_search import RandomizedSearchCV
+from sklearn.metrics import precision_recall_curve
+from sklearn.metrics import average_precision_score
 
 ### Global variables
 display_graphs = False # Boolean flag for displaying graphs
@@ -198,6 +201,25 @@ def cross_validate(train_features, targets_train, iters):
 	print('best model has a score of {} using alpha={}'.format(rsearch.best_score_, rsearch.best_estimator_.alpha))
 	return rsearch.best_estimator_.alpha
 
+def plot_precision_and_recall(predictions, targets):
+	"""Calculates and displays the precision and recall graph"""
+
+	# Compute Precision-Recall and plot curve
+	precision = dict()
+	recall = dict()
+	average_precision = dict()
+	average_precision = average_precision_score(targets, predictions)
+	precision, recall, _ = precision_recall_curve(targets, predictions)
+
+	# Plot Precision-Recall curve
+	plt.clf()
+	plt.plot(recall, precision, label='Precision-Recall curve')
+	plt.xlabel('Recall')
+	plt.ylabel('Precision')
+	plt.title('Precision-Recall example: AUC={0:0.2f}'.format(average_precision))
+	plt.legend(loc="lower left")
+	plt.show()
+
 def main():
 	"""
 	CLI Arguments allowed:
@@ -247,15 +269,23 @@ def main():
 
 	if '--cross-validate' in sys.argv:
 		alpha = cross_validate(train_features, targets_train, N_CV_ITERS)
-		train_model(train_features, targets_train, alpha)
+		classifier = train_model(train_features, targets_train, alpha)
 		save_model(classifier, 'cross_validated_')
 
 	if '--test=validation_set' in sys.argv:
 		score = classifier.score(valid_features, targets_valid)
 		print('Accuracy against validation set is {} percent'.format(score*100))
 
+		if display_graphs == True:
+			predictions = classifier.predict(valid_features)
+			plot_precision_and_recall(predictions, targets_valid)
+
 	if '--test=test_set' in sys.argv:
 		score = classifier.score(test_features, targets_test)
 		print('Accuracy against test set is {} percent'.format(score*100))
+
+		if display_graphs == True:
+			predictions = classifier.predict(test_features)
+			plot_precision_and_recall(predictions, targets_test)
 
 if __name__ == "__main__": main()
