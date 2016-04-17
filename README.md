@@ -68,6 +68,9 @@ in order to determine if the independence assumed from a Bayesian Network has an
 advantage or disadvantage over a Gaussian class-conditional density in an LDA model
 for short texts.
 
+### TODO:
+Stemming support, this should reduce input noise. Yay for feature engineering!
+
 ### References
 
 Li, F., Huang, M., & Zhu, X. (2010, July). Sentiment Analysis with Global Topics and Local Dependency. In AAAI (Vol. 10, pp. 1371-1376).
