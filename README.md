@@ -47,6 +47,7 @@ Contains machine learning methods used for predicting sentiments for tweets. :8b
  - sklearn
  - TensorFlow
  - NLTK
+ - PyBrain
  - Install these by running `pip install {package name}` in your terminal/shell
 
 ### Inquiries:
