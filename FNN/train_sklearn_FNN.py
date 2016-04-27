@@ -2,13 +2,16 @@ from __future__ import print_function
 from time import time
 import numpy as np
 import sys, os, operator, pickle
+import matplotlib.pyplot as plt
 from sklearn.decomposition import RandomizedPCA
+from sklearn.metrics import precision_recall_curve
+from sklearn.metrics import average_precision_score
 from pybrain.structure import TanhLayer
-from pybrain.datasets            import ClassificationDataSet
-from pybrain.utilities           import percentError
-from pybrain.tools.shortcuts     import buildNetwork
+from pybrain.datasets import ClassificationDataSet
+from pybrain.utilities import percentError
+from pybrain.tools.shortcuts import buildNetwork
 from pybrain.supervised.trainers import BackpropTrainer
-from pybrain.structure.modules   import SoftmaxLayer
+from pybrain.structure.modules import SoftmaxLayer
 
 ### Global variables
 display_graphs = False # Boolean flag for displaying graphs
@@ -16,10 +19,10 @@ vocabulary = {} # A dictionary of all the unique words in the corpus
 
 ### Change me to higher values for better accuracy!
 NUM_FEATURES = 2000 # The number of most common words in the corpus to use as features
-PERCENTAGE_DATA_SET_TO_USE = 0.01 # The percentage of the dataset to use
-N_COMPONENTS = 150 # The number of components for the PCA
+PERCENTAGE_DATA_SET_TO_USE = 0.05 # The percentage of the dataset to use
+N_COMPONENTS = 200 # The number of components for the PCA
 N_HIDDEN = 32
-N_EPOCHS = 10
+N_EPOCHS = 7
 trainer = None
 classifier = None
 
@@ -174,23 +177,41 @@ def extract_features(inputs_train, targets_train, inputs_valid, targets_valid, i
 
     return np.array(train_features), np.array(valid_features), np.array(test_features)
 
-def train_model( trndata ):
-    print("Fitting the classifier to the training set")
-    t0 = time()
-    for i in range(1, N_EPOCHS+1):
-            trainer.trainEpochs(1)
-    print("done in %0.3fs" % (time() - t0))
-    return
+def plot_precision_and_recall(predictions, targets):
+    """Calculates and displays the precision and recall graph"""
 
-def grid_search_train_model(features, targets):
-    pass
+    # Compute Precision-Recall and plot curve
+    precision = dict()
+    recall = dict()
+    average_precision = dict()
+    average_precision = average_precision_score(targets, predictions)
+    precision, recall, _ = precision_recall_curve(targets, predictions)
+
+    # Plot Precision-Recall curve
+    plt.clf()
+    plt.plot(recall, precision, label='Precision-Recall curve')
+    plt.xlabel('Recall')
+    plt.ylabel('Precision')
+    plt.title('Precision-Recall example: AUC={0:0.2f}'.format(average_precision))
+    plt.legend(loc="lower left")
+    plt.show()
 
 def make_prediction(tstdata):
     global trainer
     if trainer is not None:
-        print ('Percent Error on Valid dataset: ', percentError(trainer.testOnClassData(
+        error = percentError(trainer.testOnClassData(
                         dataset=tstdata)
-                        , tstdata['class']))
+                        , tstdata['class'])
+        print ('Percent Error on dataset: ', error)
+
+def train_model( trndata, valid_data ):
+    print("Fitting the classifier to the training set")
+    t0 = time()
+    for i in range(1, N_EPOCHS+1):
+            trainer.trainEpochs(1)
+            make_prediction(valid_data)
+    print("done in %0.3fs" % (time() - t0))
+    return
 
 def main():
     """
@@ -225,10 +246,17 @@ def main():
         pca = RandomizedPCA(n_components=N_COMPONENTS, whiten=False).fit(train_features)
         save_pca(pca)
         print ("Saved PCA")
-        X_train = pca.transform(train_features)
 
+        X_train = pca.transform(train_features)
+        X_valid = pca.transform(valid_features)
         pca = None
         print ("Created PCAd features")
+
+        valid_data = ClassificationDataSet(N_COMPONENTS, target=1, nb_classes=2)
+        for i in range(len(X_valid)):
+            valid_data.addSample(X_valid[i], targets_test[i])
+        valid_data._convertToOneOfMany()
+        X_valid = None
 
         train_data = ClassificationDataSet(N_COMPONENTS, target=1, nb_classes=2)
         for i in range(len(X_train)):
@@ -236,12 +264,13 @@ def main():
         train_data._convertToOneOfMany()
         X_train = None
 
-        classifier = buildNetwork( train_data.indim, N_HIDDEN, train_data.outdim, outclass=SoftmaxLayer)#, hiddenclass=TanhLayer)
-        trainer = BackpropTrainer( classifier, dataset=train_data, momentum=0.1, learningrate=0.01 , verbose=True, weightdecay=0.01)
-        train_model( train_data )
+        classifier = buildNetwork( train_data.indim, N_HIDDEN, train_data.outdim, outclass=SoftmaxLayer)
+        trainer = BackpropTrainer( classifier, dataset=train_data, momentum=0.1, learningrate=0.01 , verbose=True)
+        train_model(train_data, valid_data)
 
         save_model(classifier)
         train_data = None
+        valid_data = None
 
     else:
         train_features, valid_features, test_features = load_features()
@@ -258,10 +287,11 @@ def main():
         X_train = None
 
         classifier = load_trained_model()
-        trainer = BackpropTrainer( classifier, dataset=train_data, momentum=0.1, learningrate=0.01 , verbose=True, weightdecay=0.01)
+        trainer = BackpropTrainer( classifier, dataset=train_data, momentum=0.1, learningrate=0.01 , verbose=True)
 
 
     if '--test=validation_set' in sys.argv:
+        print ("Running against validation set")
         pca = load_pca()
         X_valid = pca.transform(valid_features)
         pca = None
@@ -272,10 +302,10 @@ def main():
         X_valid = None
 
         make_prediction(valid_data)
-        #print('Accuracy against validation set is {} percent'.format(score*100))
 
 
-    if True:#if '--test=test_set' in sys.argv:
+    if '--test=test_set' in sys.argv:
+        print ("Running against test set")
         pca = load_pca()
         X_test = pca.transform(test_features)
         pca = None
@@ -283,9 +313,10 @@ def main():
         for i in range(len(X_test)):
             test_data.addSample( X_test[i], targets_test[i])
         test_data._convertToOneOfMany()
+        y_pred = trainer.testOnClassData(dataset=test_data)
+        plot_precision_and_recall(y_pred, targets_test[:len(targets_test) * PERCENTAGE_DATA_SET_TO_USE])
         X_test = None
 
         make_prediction(test_data)
-        #print('Accuracy against test set is {} percent'.format(score*100))
 
 if __name__ == "__main__": main()

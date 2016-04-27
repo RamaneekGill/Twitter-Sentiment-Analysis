@@ -4,9 +4,12 @@ from sklearn.grid_search import GridSearchCV
 from sklearn.metrics import classification_report
 from sklearn.metrics import confusion_matrix
 from sklearn.svm import SVC
+from sklearn.decomposition import RandomizedPCA
+from sklearn.metrics import precision_recall_curve
+from sklearn.metrics import average_precision_score
+import matplotlib.pyplot as plt
 import numpy as np
 import sys, os, operator, pickle
-from sklearn.decomposition import RandomizedPCA
 
 ### Global variables
 display_graphs = False # Boolean flag for displaying graphs
@@ -14,8 +17,8 @@ vocabulary = {} # A dictionary of all the unique words in the corpus
 
 ### Change me to higher values for better accuracy!
 NUM_FEATURES = 2000 # The number of most common words in the corpus to use as features
-PERCENTAGE_DATA_SET_TO_USE = 0.05 # The percentage of the dataset to use
-N_COMPONENTS = 150 # The number of components for the PCA
+PERCENTAGE_DATA_SET_TO_USE = 0.1 # The percentage of the dataset to use
+N_COMPONENTS = 200 # The number of components for the PCA
 
 ###############################################################################
 
@@ -189,8 +192,28 @@ def grid_search_train_model(features, targets):
     print(clf.best_estimator_)
     return clf
 
+def plot_precision_and_recall(predictions, targets):
+    """Calculates and displays the precision and recall graph"""
+
+    # Compute Precision-Recall and plot curve
+    precision = dict()
+    recall = dict()
+    average_precision = dict()
+    average_precision = average_precision_score(targets, predictions)
+    precision, recall, _ = precision_recall_curve(targets, predictions)
+
+    # Plot Precision-Recall curve
+    plt.clf()
+    plt.plot(recall, precision, label='Precision-Recall curve')
+    plt.xlabel('Recall')
+    plt.ylabel('Precision')
+    plt.title('Precision-Recall example: AUC={0:0.2f}'.format(average_precision))
+    plt.legend(loc="lower left")
+    plt.show()
+
 def make_prediction( clf, X, targets):
     y_pred = clf.predict(X)
+    plot_precision_and_recall(y_pred, targets)
     target_names = ['Negative', 'Positive']
     print(classification_report(targets, y_pred, target_names=target_names))
     print(confusion_matrix(targets, y_pred, labels=range(len(target_names))))
@@ -236,7 +259,11 @@ def main():
         pca = None
         print ("Created PCAd features")
 
-        classifier = train_model( X_train, targets_train[:len(targets_train)*PERCENTAGE_DATA_SET_TO_USE])
+        if '--cross-validate' in sys.argv:
+            classifier = grid_search_train_model( X_train, targets_train[:len(targets_train)*PERCENTAGE_DATA_SET_TO_USE])
+        else:
+            classifier = train_model( X_train, targets_train[:len(targets_train)*PERCENTAGE_DATA_SET_TO_USE])
+
         save_model(classifier)
         X_train = None
 
@@ -254,7 +281,7 @@ def main():
         print('Accuracy against validation set is {} percent'.format(score*100))
         X_valid = None
 
-    if True:#if '--test=test_set' in sys.argv:
+    if '--test=test_set' in sys.argv:
         pca = load_pca()
         X_test = pca.transform(test_features)
         pca = None
